@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Group } from "@visx/group";
 import { AxisBottom, AxisLeft } from "@visx/axis";
-import { Line } from "@visx/shape";
+import { Bar, Line } from "@visx/shape";
 import { scaleBand } from "@visx/scale";
 import type { Series as D3Series, SeriesPoint } from "d3-shape";
 import { stack, stackOffsetExpand, stackOffsetNone } from "d3-shape";
@@ -12,7 +12,6 @@ import { Series } from "./types/series";
 import { createStackedXScale, createXScale, createYScale } from "./utils/scale";
 import { ChartTheme } from "./types/style";
 import { Margin } from "./types/margin";
-import { ChartBar } from "./RowChartView.styled";
 
 const MIN_TICKS_COUNT = 2;
 
@@ -268,7 +267,8 @@ export const RowChartView = <TDatum,>({
 
             return (
               <>
-                <ChartBar
+                <Bar
+                  style={{ transition: "opacity 300ms" }}
                   key={`${series.seriesKey}:${datumIndex}`}
                   x={x}
                   y={y}

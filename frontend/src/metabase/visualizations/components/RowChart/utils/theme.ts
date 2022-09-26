@@ -5,7 +5,7 @@ export const getChartTheme: () => ChartTheme = () => {
   return {
     axis: {
       color: color("bg-dark"),
-      minTicksInterval: 160,
+      minTicksInterval: 60,
       ticks: {
         size: 12,
         weight: 700,

@@ -1,12 +1,13 @@
 import { RowValue, VisualizationSettings } from "metabase-types/api";
+import { ChartColumns } from "metabase/visualizations/lib/graph/columns";
+import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
 import { formatValue } from "metabase/lib/formatting";
-import { ChartColumns } from "./columns";
-import { getStackingOffset } from "./stacking";
+import { ChartTicksFormatters } from "metabase/visualizations/components/RowChart/RowChartView/types/format";
 
 export const getFormatters = (
   chartColumns: ChartColumns,
   settings: VisualizationSettings,
-) => {
+): ChartTicksFormatters => {
   const yTickFormatter = (value: RowValue) => {
     return String(
       formatValue(value, {

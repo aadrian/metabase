@@ -1,3 +1,4 @@
+import { ROW_CHART_TYPE } from "metabase/static-viz/components/RowChart/constants";
 import {
   CATEGORICAL_DONUT_CHART_DEFAULT_OPTIONS,
   CATEGORICAL_DONUT_CHART_TYPE,
@@ -30,6 +31,7 @@ export const STATIC_CHART_TYPES = [
   PROGRESS_BAR_TYPE,
   LINE_AREA_BAR_CHART_TYPE,
   FUNNEL_CHART_TYPE,
+  ROW_CHART_TYPE,
 ] as const;
 
 export const STATIC_CHART_DEFAULT_OPTIONS = [

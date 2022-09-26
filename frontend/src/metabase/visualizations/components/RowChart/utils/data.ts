@@ -1,5 +1,4 @@
 import { t } from "ttag";
-import { isMetric } from "metabase/lib/schema_metadata";
 import {
   DatasetColumn,
   DatasetData,
@@ -11,7 +10,10 @@ import {
   ChartColumns,
   ColumnDescriptor,
   getColumnDescriptors,
-} from "./columns";
+} from "../../../lib/graph/columns";
+
+// FIXME: use import { isMetric } from "metabase/lib/schema_metadata" but make it work for the static viz
+const isMetric = (col: any) => col && col.source !== "breakout";
 
 export type MetricValue = number | null;
 
@@ -20,7 +22,7 @@ export type BreakoutName = string;
 
 export type MetricDatum = { [key: MetricName]: MetricValue };
 
-export type SeriesOrder = Series<unknown, unknown>["seriesKey"][];
+export type SeriesOrder = string[];
 
 export type SeriesInfo = {
   metricColumn: DatasetColumn;

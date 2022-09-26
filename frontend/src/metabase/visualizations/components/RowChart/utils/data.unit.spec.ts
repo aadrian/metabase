@@ -1,6 +1,9 @@
 import { DatasetData } from "metabase-types/api";
 import { createMockColumn } from "metabase-types/api/mocks";
-import { BreakoutChartColumns, MultipleMetricsChartColumns } from "./columns";
+import {
+  BreakoutChartColumns,
+  MultipleMetricsChartColumns,
+} from "../../../lib/graph/columns";
 import { getGroupedDataset } from "./data";
 
 const dimensionColumn = createMockColumn({ name: "year" });

@@ -1,5 +1,7 @@
 import React from "react";
 import { createColorGetter } from "metabase/static-viz/lib/colors";
+import { ROW_CHART_TYPE } from "metabase/static-viz/components/RowChart/constants";
+import RowChart from "metabase/static-viz/components/RowChart";
 import CategoricalDonutChart from "../../components/CategoricalDonutChart";
 import { CATEGORICAL_DONUT_CHART_TYPE } from "../../components/CategoricalDonutChart/constants";
 import CategoricalWaterfallChart from "../../components/CategoricalWaterfallChart";
@@ -25,6 +27,8 @@ const StaticChart = ({ type, options }: StaticChartProps) => {
       return <CategoricalWaterfallChart {...chartProps} />;
     case TIME_SERIES_WATERFALL_CHART_TYPE:
       return <TimeSeriesWaterfallChart {...chartProps} />;
+    case ROW_CHART_TYPE:
+      return <RowChart {...chartProps} />;
     case PROGRESS_BAR_TYPE:
       return <ProgressBar {...chartProps} />;
     case LINE_AREA_BAR_CHART_TYPE:

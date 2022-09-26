@@ -4,7 +4,7 @@ import {
   VisualizationSettings,
 } from "metabase-types/api";
 import { Series } from "../RowChartView/types/series";
-import { ChartColumns } from "./columns";
+import { ChartColumns } from "../../../lib/graph/columns";
 import { GroupedDataset, GroupedDatum, SeriesInfo } from "./data";
 
 export const getClickData = (

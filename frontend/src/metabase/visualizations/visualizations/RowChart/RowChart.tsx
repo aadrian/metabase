@@ -1,48 +1,41 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 import { t } from "ttag";
 
-import { getIn } from "icepick";
 import _ from "underscore";
 import {
   GRAPH_DATA_SETTINGS,
   GRAPH_GOAL_SETTINGS,
-  GRAPH_COLORS_SETTINGS,
-  GRAPH_AXIS_SETTINGS,
-  GRAPH_DISPLAY_VALUES_SETTINGS,
 } from "metabase/visualizations/lib/settings/graph";
-import { getColorsForValues } from "metabase/lib/colors/charts";
-import {
-  getGroupedDataset,
-  getSeries,
-  groupExcessiveData,
-} from "metabase/visualizations/visualizations/RowChart/utils/data";
-import { getAccentColors } from "metabase/lib/colors/groups";
-import { formatValue } from "metabase/lib/formatting";
-import {
-  DatasetData,
-  RowValue,
-  VisualizationSettings,
-} from "metabase-types/api";
-import { color } from "metabase/lib/colors";
+import { DatasetData, VisualizationSettings } from "metabase-types/api";
 import { isDimension, isMetric } from "metabase/lib/schema_metadata";
-import { RowChartView } from "./RowChartView/RowChartView";
-import { ChartTheme } from "./RowChartView/types/style";
-import { getMaxYValuesCount } from "./utils/layout";
-import { getChartMargin, getMaxWidth } from "./utils/margin";
-import { Margin } from "./RowChartView/types/margin";
-import { getChartColumns } from "./utils/columns";
-import { getClickData } from "./utils/events";
-import { getFormatters } from "./utils/format";
-import { getStackingOffset } from "./utils/stacking";
-import { getChartGoal } from "./utils/goal";
-import { getChartTheme } from "./utils/theme";
-import { getSeriesColors } from "./utils/colors";
-
-const MIN_BAR_HEIGHT = 24;
+import { RowChart } from "metabase/visualizations/components/RowChart";
+import { getSeries } from "metabase/visualizations/components/RowChart/utils/data";
+import { getChartColumns } from "metabase/visualizations/lib/graph/columns";
+import { getFormatters } from "metabase/visualizations/visualizations/RowChart/utils/format";
+import { measureText } from "metabase/lib/measure-text";
+import LegendLayout from "metabase/visualizations/components/legend/LegendLayout";
+import { getSeriesColors } from "metabase/visualizations/components/RowChart/utils/colors";
+import ExplicitSize from "metabase/components/ExplicitSize";
+import {
+  RowVisualizationRoot,
+  RowChartContainer,
+  RowChartLegendLayout,
+} from "./RowChart.styled";
 
 type $FIXME = any;
 
-interface RowChartProps {
+const RowChartRenderer = ExplicitSize({
+  wrapped: true,
+  refreshMode: "debounceLeading",
+  selector: ".row-container",
+})((props: any) => (
+  <RowChartContainer className="row-container">
+    <RowChart {...props} />{" "}
+  </RowChartContainer>
+));
+
+// FIXME: fix the props type
+interface RowChartVisualizationProps extends Record<string, any> {
   className: string;
   width: number;
   height: number;
@@ -52,7 +45,8 @@ interface RowChartProps {
   onVisualizationClick: $FIXME;
 }
 
-const RowChart = ({
+const RowChartVisualization = ({
+  card,
   className,
   width,
   height,
@@ -60,8 +54,17 @@ const RowChart = ({
   data,
   visualizationIsClickable,
   onVisualizationClick,
+  series,
+  hovered,
+  headerIcon,
+  actionButtons,
+  isFullscreen,
+  isQueryBuilder,
+  onHoverChange,
+  onAddSeries,
+  onRemoveSeries,
   ...props
-}: RowChartProps) => {
+}: RowChartVisualizationProps) => {
   const chartColumns = useMemo(
     () => getChartColumns(data, settings),
     [data, settings],
@@ -78,99 +81,44 @@ const RowChart = ({
       .map(setting => setting.name);
   }, [settings]);
 
-  const groupedData = useMemo(
-    () => getGroupedDataset(data, chartColumns),
-    [chartColumns, data],
-  );
-  const series = useMemo(
+  const chartSeries = useMemo(
     () => getSeries(data, chartColumns, seriesOrder),
     [chartColumns, data, seriesOrder],
   );
 
   const seriesColors = useMemo(
-    () => getSeriesColors(settings, series),
-    [series, settings],
+    () => getSeriesColors(settings, chartSeries),
+    [chartSeries, settings],
   );
-
-  const handleClick = (
-    event: React.MouseEvent,
-    seriesIndex: number,
-    datumIndex: number,
-  ) => {
-    const clickData = getClickData(
-      seriesIndex,
-      datumIndex,
-      series,
-      groupedData,
-      settings,
-      chartColumns,
-    );
-
-    onVisualizationClick({ ...clickData, element: event.target });
-  };
-
-  const goal = useMemo(() => getChartGoal(settings), [settings]);
-
-  const theme = useMemo(getChartTheme, []);
-
-  const stackingOffset = getStackingOffset(settings);
-
-  const maxYValues = getMaxYValuesCount(
-    height,
-    MIN_BAR_HEIGHT,
-    stackingOffset != null,
-    series.length,
-  );
-
-  const trimmedData = useMemo(
-    () => groupExcessiveData(groupedData, maxYValues),
-    [groupedData, maxYValues],
-  );
-
-  const { xTickFormatter, yTickFormatter } = useMemo(
-    () => getFormatters(chartColumns, settings),
-    [chartColumns, settings],
-  );
-
-  const margin = useMemo(
-    () =>
-      getChartMargin(
-        trimmedData,
-        yTickFormatter,
-        theme.axis.ticks,
-        goal != null,
-      ),
-    [goal, theme.axis.ticks, trimmedData, yTickFormatter],
-  );
-
-  const shouldShowLabels =
-    settings["graph.show_values"] && stackingOffset !== "expand";
 
   return (
-    <div className={className} style={{ overflow: "hidden" }}>
-      <RowChartView
-        margin={margin}
-        theme={theme}
-        width={width}
-        height={height}
-        data={trimmedData}
-        series={series}
-        goal={goal}
-        onClick={visualizationIsClickable ? handleClick : undefined}
-        yTickFormatter={yTickFormatter}
-        xTickFormatter={xTickFormatter}
-        shouldShowLabels={shouldShowLabels}
-        stackingOffset={stackingOffset}
-        seriesColors={seriesColors}
-      />
-    </div>
+    <RowVisualizationRoot className={className}>
+      <RowChartLegendLayout
+        hasLegend={chartSeries.length > 1}
+        labels={chartSeries.map(s => s.seriesKey)}
+        colors={Object.values(seriesColors)}
+        hovered={hovered}
+        onHoverChange={onHoverChange}
+        isFullscreen={isFullscreen}
+        isQueryBuilder={isQueryBuilder}
+      >
+        <RowChartRenderer
+          className="flex-full"
+          settings={settings}
+          data={data}
+          measureText={measureText}
+          getFormatters={getFormatters}
+          onVisualizationClick={onVisualizationClick}
+        />
+      </RowChartLegendLayout>
+    </RowVisualizationRoot>
   );
 };
 
-RowChart.uiName = t`Row`;
-RowChart.identifier = "row";
-RowChart.iconName = "horizontal_bar";
-RowChart.noun = t`row chart`;
+RowChartVisualization.uiName = t`Row`;
+RowChartVisualization.identifier = "row";
+RowChartVisualization.iconName = "horizontal_bar";
+RowChartVisualization.noun = t`row chart`;
 
 const stackingSettings = {
   "stackable.stack_type": {
@@ -188,7 +136,7 @@ const stackingSettings = {
   },
 };
 
-RowChart.settings = {
+RowChartVisualization.settings = {
   ...stackingSettings,
   "graph.show_values": {
     section: t`Display`,
@@ -200,10 +148,9 @@ RowChart.settings = {
   },
   ...GRAPH_GOAL_SETTINGS,
   ...GRAPH_DATA_SETTINGS,
-  // ...GRAPH_AXIS_SETTINGS,
 };
 
-RowChart.isSensible = ({ cols, rows }: $FIXME) => {
+RowChartVisualization.isSensible = ({ cols, rows }: $FIXME) => {
   return (
     rows.length > 1 &&
     cols.length >= 2 &&
@@ -212,18 +159,18 @@ RowChart.isSensible = ({ cols, rows }: $FIXME) => {
   );
 };
 
-RowChart.isLiveResizable = (series: any[]) => {
+RowChartVisualization.isLiveResizable = (series: any[]) => {
   const totalRows = series.reduce((sum, s) => sum + s.data.rows.length, 0);
   return totalRows < 10;
 };
 
 // rename these settings
-RowChart.settings["graph.metrics"] = {
-  ...RowChart.settings["graph.metrics"],
+RowChartVisualization.settings["graph.metrics"] = {
+  ...RowChartVisualization.settings["graph.metrics"],
   title: t`X-axis`,
 };
-RowChart.settings["graph.dimensions"] = {
-  ...RowChart.settings["graph.dimensions"],
+RowChartVisualization.settings["graph.dimensions"] = {
+  ...RowChartVisualization.settings["graph.dimensions"],
   title: t`Y-axis`,
 };
 
@@ -231,7 +178,7 @@ RowChart.settings["graph.dimensions"] = {
  * Required to make it compatible with series settings without rewriting them fully
  * It expands a single card + dataset into multiple "series" and sets _seriesKey which is needed for settings to work
  */
-RowChart.transformSeries = (originalMultipleSeries: any) => {
+RowChartVisualization.transformSeries = (originalMultipleSeries: any) => {
   const [series] = originalMultipleSeries;
 
   if (series.card._transformed) {
@@ -254,4 +201,4 @@ RowChart.transformSeries = (originalMultipleSeries: any) => {
     });
 };
 
-export default RowChart;
+export default RowChartVisualization;

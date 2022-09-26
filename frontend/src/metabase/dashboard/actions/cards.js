@@ -64,6 +64,7 @@ export const addDashCardToDashboard = function ({ dashId, dashcardOverrides }) {
       visualization_settings: {},
     };
     _.extend(dashcard, dashcardOverrides);
+    console.log("new dashcard", dashcard);
     dispatch(createAction(ADD_CARD_TO_DASH)(dashcard));
   };
 };
@@ -85,18 +86,22 @@ export const addTextDashCardToDashboard = function ({ dashId }) {
   });
 };
 
-export const addActionDashCardToDashboard = ({ dashId }) => {
+export const addActionToDashboard = async ({ dashId, action }) => {
+  console.log("add me baby!", dashId, action);
   const virtualActionsCard = {
     ...createCard(),
     display: "action",
     archived: false,
   };
   const dashcardOverrides = {
+    action,
+    action_id: action.id,
     card: virtualActionsCard,
     size_x: 2,
     size_y: 1,
     visualization_settings: {
       virtual_card: virtualActionsCard,
+      "button.label": action.name,
     },
   };
   return addDashCardToDashboard({

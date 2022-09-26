@@ -59,6 +59,11 @@ export const getShowAddQuestionSidebar = createSelector(
   sidebar => sidebar.name === SIDEBAR_NAME.addQuestion,
 );
 
+export const getShowAddActionSidebar = createSelector(
+  [getSidebar],
+  sidebar => sidebar.name === SIDEBAR_NAME.addAction,
+);
+
 export const getIsShowDashboardInfoSidebar = createSelector(
   [getSidebar],
   sidebar => sidebar.name === SIDEBAR_NAME.info,

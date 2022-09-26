@@ -188,6 +188,8 @@ class DashboardHeader extends Component {
       location,
       onToggleAddQuestionSidebar,
       showAddQuestionSidebar,
+      onToggleAddActionSidebar,
+      showAddActionSidebar,
       onFullscreenChange,
       createBookmark,
       deleteBookmark,
@@ -240,16 +242,13 @@ class DashboardHeader extends Component {
       if (isAdmin && dashboard.is_app_page) {
         buttons.push(
           <Tooltip key="add-action" tooltip={t`Add action`}>
-            <a
-              data-metabase-event="Dashboard;Add Action"
-              key="add-action"
-              className="text-brand-hover cursor-pointer"
-              onClick={() => this.onAddAction()}
+            <DashboardHeaderButton
+              isActive={showAddActionSidebar}
+              onClick={onToggleAddActionSidebar}
+              data-metabase-event="Dashboard;Add Card Sidebar"
             >
-              <DashboardHeaderButton>
-                <Icon name="play" size={18} />
-              </DashboardHeaderButton>
-            </a>
+              <Icon name="play" size={18} />
+            </DashboardHeaderButton>
           </Tooltip>,
         );
       }

@@ -88,6 +88,8 @@ class Dashboard extends Component {
     closeSidebar: PropTypes.func.isRequired,
     openAddQuestionSidebar: PropTypes.func.isRequired,
     showAddQuestionSidebar: PropTypes.bool.isRequired,
+    openAddActionSidebar: PropTypes.func.isRequired,
+    showAddActionSidebar: PropTypes.bool.isRequired,
     embedOptions: PropTypes.object,
   };
 
@@ -198,6 +200,14 @@ class Dashboard extends Component {
     }
   };
 
+  onToggleAddActionSidebar = () => {
+    if (this.props.showAddActionSidebar) {
+      this.props.closeSidebar();
+    } else {
+      this.props.openAddActionSidebar();
+    }
+  };
+
   onCancel = () => {
     this.props.setSharing(false);
   };
@@ -219,6 +229,7 @@ class Dashboard extends Component {
       parameterValues,
       isNavbarOpen,
       showAddQuestionSidebar,
+      showAddActionSidebar,
       editingParameter,
       setParameterValue,
       setParameterIndex,
@@ -280,6 +291,8 @@ class Dashboard extends Component {
                   onSharingClick={this.onSharingClick}
                   onToggleAddQuestionSidebar={this.onToggleAddQuestionSidebar}
                   showAddQuestionSidebar={showAddQuestionSidebar}
+                  onToggleAddActionSidebar={this.onToggleAddActionSidebar}
+                  showAddActionSidebar={showAddActionSidebar}
                 />
 
                 {shouldRenderParametersWidgetInEditMode && (

@@ -27,3 +27,11 @@ export const openAddQuestionSidebar = () => dispatch => {
     }),
   );
 };
+
+export const openAddActionSidebar = () => dispatch => {
+  dispatch(
+    setSidebar({
+      name: SIDEBAR_NAME.addAction,
+    }),
+  );
+};

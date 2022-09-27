@@ -5,19 +5,15 @@ import _ from "underscore";
 import { DatasetData, VisualizationSettings } from "metabase-types/api";
 import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
 import { getChartGoal } from "metabase/visualizations/lib/settings/goal";
-import {
-  ChartColumns,
-  getChartColumns,
-} from "metabase/visualizations/lib/graph/columns";
+import { ChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { TextMeasurer } from "metabase/visualizations/types/measure-text";
-import { getGroupedDataset, getSeries, groupExcessiveData } from "./utils/data";
 import { RowChartView } from "./RowChartView/RowChartView";
-import { getMaxYValuesCount } from "./utils/layout";
-import { getChartMargin } from "./utils/margin";
-import { getClickData } from "./utils/events";
+import { getMaxYValuesCount, getChartMargin } from "./utils/layout";
+import { getClickData, getHoverData } from "./utils/events";
 import { getChartTheme } from "./utils/theme";
-import { getSeriesColors } from "./utils/colors";
 import { ChartTicksFormatters } from "./RowChartView/types/format";
+import { useChartSeries } from "./hooks/use-chart-series";
+import { useChartDataset } from "./hooks/use-chart-dataset";
 
 const MIN_BAR_HEIGHT = 24;
 
@@ -33,7 +29,9 @@ interface RowChartProps {
     chartColumns: ChartColumns,
     settings: VisualizationSettings,
   ) => ChartTicksFormatters;
+  hovered: $FIXME;
   onVisualizationClick?: $FIXME;
+  onHoverChange?: $FIXME;
 }
 
 export const RowChart = ({
@@ -43,55 +41,27 @@ export const RowChart = ({
   data,
   getFormatters,
   measureText,
+  hovered,
   onVisualizationClick,
+  onHoverChange,
 }: RowChartProps) => {
-  const chartColumns = useMemo(
-    () => getChartColumns(data, settings),
-    [data, settings],
-  );
-
-  const seriesOrder = useMemo(() => {
-    const seriesOrderSettings = settings["graph.series_order"];
-    if (!seriesOrderSettings) {
-      return;
-    }
-
-    return seriesOrderSettings
-      .filter(setting => setting.enabled)
-      .map(setting => setting.name);
-  }, [settings]);
-
-  const groupedData = useMemo(
-    () => getGroupedDataset(data, chartColumns),
-    [chartColumns, data],
-  );
-  const series = useMemo(
-    () => getSeries(data, chartColumns, seriesOrder),
-    [chartColumns, data, seriesOrder],
-  );
-
-  const seriesColors = useMemo(
-    () => getSeriesColors(settings, series),
-    [series, settings],
-  );
-
+  const { chartColumns, series, seriesColors } = useChartSeries(data, settings);
   const goal = useMemo(() => getChartGoal(settings), [settings]);
-
   const theme = useMemo(getChartTheme, []);
-
   const stackingOffset = getStackingOffset(settings);
 
-  const maxYValues = getMaxYValuesCount(
-    height,
-    MIN_BAR_HEIGHT,
-    stackingOffset != null,
-    series.length,
+  const maxYValues = useMemo(
+    () =>
+      getMaxYValuesCount(
+        height,
+        MIN_BAR_HEIGHT,
+        stackingOffset != null,
+        series.length,
+      ),
+    [height, series.length, stackingOffset],
   );
 
-  const trimmedData = useMemo(
-    () => groupExcessiveData(groupedData, maxYValues),
-    [groupedData, maxYValues],
-  );
+  const { trimmedData } = useChartDataset(chartColumns, data, maxYValues);
 
   const { xTickFormatter, yTickFormatter } = useMemo(
     () => getFormatters(chartColumns, settings),
@@ -122,13 +92,36 @@ export const RowChart = ({
       seriesIndex,
       datumIndex,
       series,
-      groupedData,
+      trimmedData,
       settings,
       chartColumns,
     );
 
     onVisualizationClick({ ...clickData, element: event.target });
   };
+
+  const handleHoverChange = (
+    event: React.MouseEvent,
+    seriesIndex: number | null,
+    datumIndex: number | null,
+  ) => {
+    if (seriesIndex == null || datumIndex == null) {
+      onHoverChange(null);
+      return;
+    }
+    const hoverData = getHoverData(
+      seriesIndex,
+      datumIndex,
+      series,
+      trimmedData,
+      chartColumns,
+    );
+    onHoverChange({ ...hoverData, event: event.nativeEvent });
+  };
+
+  // FIXME: unify-transform different shapes of the hover object on the upper level
+  const hoveredSeriesIndex: number | undefined =
+    hovered?.seriesIndex || hovered?.index;
 
   return (
     <RowChartView
@@ -140,6 +133,8 @@ export const RowChart = ({
       series={series}
       goal={goal}
       onClick={handleClick}
+      hoveredSeriesIndex={hoveredSeriesIndex}
+      onHoverChange={handleHoverChange}
       yTickFormatter={yTickFormatter}
       xTickFormatter={xTickFormatter}
       shouldShowLabels={shouldShowLabels}

@@ -7,7 +7,11 @@ export const RowVisualizationRoot = styled.div`
 `;
 
 export const RowChartContainer = styled.div`
-  height: 100%;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
 `;
 
 export const RowChartLegendLayout = styled(LegendLayout)`

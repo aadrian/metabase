@@ -29,7 +29,12 @@ interface RowChartViewProps<TDatum> {
   series: Series<TDatum>[];
   shouldShowLabels?: boolean;
   stackingOffset: StackingOffset | null;
-  onHoverChange?: (seriesIndex: number | null, barIndex: number | null) => void;
+  hoveredSeriesIndex?: number | null;
+  onHoverChange?: (
+    event: React.MouseEvent,
+    seriesIndex: number | null,
+    barIndex: number | null,
+  ) => void;
   onClick?: (
     event: React.MouseEvent,
     seriesIndex: number,
@@ -120,14 +125,13 @@ export const RowChartView = <TDatum,>({
   stackingOffset = null,
   theme,
   margin,
+  hoveredSeriesIndex,
   yTickFormatter,
   xTickFormatter,
   onHoverChange,
   seriesColors,
   onClick,
 }: RowChartViewProps<TDatum>) => {
-  const [hoveredSeriesIndex, setHoveredSeriesIndex] = useState<number | null>();
-
   const xMax = width - margin.left - margin.right;
   const yMax = height - margin.top - margin.bottom;
 
@@ -168,14 +172,16 @@ export const RowChartView = <TDatum,>({
         range: [0, yScale.bandwidth()],
       });
 
-  const handleBarMouseEnter = (seriesIndex: number, barIndex: number) => {
-    setHoveredSeriesIndex(seriesIndex);
-    onHoverChange?.(seriesIndex, barIndex);
+  const handleBarMouseEnter = (
+    event: React.MouseEvent,
+    seriesIndex: number,
+    datumIndex: number,
+  ) => {
+    onHoverChange?.(event, seriesIndex, datumIndex);
   };
 
-  const handleBarMouseLeave = () => {
-    setHoveredSeriesIndex(null);
-    onHoverChange?.(null, null);
+  const handleBarMouseLeave = (event: React.MouseEvent) => {
+    onHoverChange?.(event, null, null);
   };
 
   const handleClick = (
@@ -277,8 +283,8 @@ export const RowChartView = <TDatum,>({
                   fill={seriesColors[series.seriesKey]}
                   opacity={opacity}
                   onClick={event => handleClick(event, seriesIndex, datumIndex)}
-                  onMouseEnter={() =>
-                    handleBarMouseEnter(seriesIndex, datumIndex)
+                  onMouseEnter={event =>
+                    handleBarMouseEnter(event, seriesIndex, datumIndex)
                   }
                   onMouseLeave={handleBarMouseLeave}
                 />

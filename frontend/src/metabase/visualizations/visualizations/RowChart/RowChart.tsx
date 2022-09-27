@@ -13,7 +13,6 @@ import { getSeries } from "metabase/visualizations/components/RowChart/utils/dat
 import { getChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { getFormatters } from "metabase/visualizations/visualizations/RowChart/utils/format";
 import { measureText } from "metabase/lib/measure-text";
-import LegendLayout from "metabase/visualizations/components/legend/LegendLayout";
 import { getSeriesColors } from "metabase/visualizations/components/RowChart/utils/colors";
 import ExplicitSize from "metabase/components/ExplicitSize";
 import {
@@ -24,13 +23,14 @@ import {
 
 type $FIXME = any;
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 const RowChartRenderer = ExplicitSize({
   wrapped: true,
-  refreshMode: "debounceLeading",
-  selector: ".row-container",
+  refreshMode: "throttle",
 })((props: any) => (
-  <RowChartContainer className="row-container">
-    <RowChart {...props} />{" "}
+  <RowChartContainer>
+    <RowChart {...props} />
   </RowChartContainer>
 ));
 
@@ -109,6 +109,8 @@ const RowChartVisualization = ({
           measureText={measureText}
           getFormatters={getFormatters}
           onVisualizationClick={onVisualizationClick}
+          onHoverChange={onHoverChange}
+          hovered={hovered}
         />
       </RowChartLegendLayout>
     </RowVisualizationRoot>

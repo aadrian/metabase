@@ -42,3 +42,42 @@ export const getClickData = (
     settings: visualizationSettings,
   };
 };
+
+export const getHoverData = (
+  seriesIndex: number,
+  datumIndex: number,
+  series: Series<GroupedDatum, SeriesInfo>[],
+  groupedData: GroupedDataset,
+  chartColumns: ChartColumns,
+) => {
+  const currentSeries = series[seriesIndex];
+  const currentDatum = groupedData[datumIndex];
+
+  const data = [
+    {
+      key: chartColumns.dimension.column.display_name,
+      value: currentDatum.dimensionValue,
+    },
+  ];
+
+  if ("breakout" in chartColumns) {
+    data.push({
+      key: chartColumns.breakout.column.display_name,
+      value: currentSeries.seriesKey,
+    });
+
+    data.push({
+      key: chartColumns.metric.column.display_name,
+      value: currentSeries.xAccessor(currentDatum),
+    });
+  }
+
+  const result = {
+    index: seriesIndex,
+    seriesIndex,
+    datumIndex,
+    data,
+  };
+
+  return result;
+};

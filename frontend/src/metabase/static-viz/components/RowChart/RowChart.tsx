@@ -15,14 +15,14 @@ interface RowChartProps {
 const StaticRowChart = ({ data, card }: RowChartProps) => {
   const textMeasurer: TextMeasurer = useCallback(
     (text: string, style: FontStyle) =>
-      measureText(text, parseInt(style.size, 10), 700),
+      measureText(text, parseInt(style.size, 10), parseInt(style.weight)),
     [],
   );
 
   return (
     <RowChart
-      width={600}
-      height={420}
+      width={620}
+      height={440}
       settings={card.visualization_settings}
       data={data}
       measureText={textMeasurer}

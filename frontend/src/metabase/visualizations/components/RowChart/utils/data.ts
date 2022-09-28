@@ -1,42 +1,23 @@
 import { t } from "ttag";
-import {
-  DatasetColumn,
-  DatasetData,
-  RowValue,
-  RowValues,
-} from "metabase-types/api";
-import { Series } from "../RowChartView/types/series";
+import { DatasetData, RowValue, RowValues } from "metabase-types/api";
+
 import {
   ChartColumns,
   ColumnDescriptor,
   getColumnDescriptors,
-} from "../../../lib/graph/columns";
+} from "metabase/visualizations/lib/graph/columns";
+import {
+  GroupedDataset,
+  GroupedDatum,
+  MetricDatum,
+  MetricValue,
+  Series,
+  SeriesInfo,
+  SeriesOrder,
+} from "../types";
 
 // FIXME: use import { isMetric } from "metabase/lib/schema_metadata" but make it work for the static viz
 const isMetric = (col: any) => col && col.source !== "breakout";
-
-export type MetricValue = number | null;
-
-export type MetricName = string;
-export type BreakoutName = string;
-
-export type MetricDatum = { [key: MetricName]: MetricValue };
-
-export type SeriesOrder = string[];
-
-export type SeriesInfo = {
-  metricColumn: DatasetColumn;
-  dimensionColumn: DatasetColumn;
-  breakoutValue?: RowValue;
-};
-
-export type GroupedDatum = {
-  dimensionValue: RowValue;
-  metrics: MetricDatum;
-  breakout?: { [key: BreakoutName]: MetricDatum };
-};
-
-export type GroupedDataset = GroupedDatum[];
 
 const getMetricValue = (value: RowValue): MetricValue => {
   if (typeof value === "number") {
@@ -120,7 +101,7 @@ export const getGroupedDataset = (
   return groupDataByDimensions(data.rows, chartColumns, allMetricDescriptors);
 };
 
-export const groupExcessiveData = (
+export const trimData = (
   dataset: GroupedDataset,
   valuesLimit: number,
 ): GroupedDataset => {

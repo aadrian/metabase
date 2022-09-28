@@ -2,54 +2,65 @@ import React, { useMemo } from "react";
 
 import _ from "underscore";
 
-import { DatasetData, VisualizationSettings } from "metabase-types/api";
-import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
-import { getChartGoal } from "metabase/visualizations/lib/settings/goal";
-import { ChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { TextMeasurer } from "metabase/visualizations/types/measure-text";
-import { RowChartView } from "./RowChartView/RowChartView";
+import { RowChartView, RowChartViewProps } from "./RowChartView/RowChartView";
 import { getMaxYValuesCount, getChartMargin } from "./utils/layout";
-import { getClickData, getHoverData } from "./utils/events";
-import { getChartTheme } from "./utils/theme";
-import { ChartTicksFormatters } from "./RowChartView/types/format";
-import { useChartSeries } from "./hooks/use-chart-series";
-import { useChartDataset } from "./hooks/use-chart-dataset";
+import {
+  ChartGoal,
+  ChartTheme,
+  ChartTicksFormatters,
+  HoveredData,
+  Series,
+} from "./types";
 
 const MIN_BAR_HEIGHT = 24;
 
-type $FIXME = any;
-
-interface RowChartProps {
+export interface RowChartProps<TDatum> {
   width: number;
   height: number;
-  data: DatasetData;
-  settings: VisualizationSettings;
+
+  data: TDatum[];
+  series: Series<TDatum>[];
+  seriesColors: Record<string, string>;
+
+  trimData: (data: TDatum[], maxLength: number) => TDatum[];
+
+  goal: ChartGoal | null;
+  theme: ChartTheme;
+  stackingOffset: "none" | "expand" | null;
+  shouldShowDataLabels?: boolean;
+
+  tickFormatters: ChartTicksFormatters;
   measureText: TextMeasurer;
-  getFormatters: (
-    chartColumns: ChartColumns,
-    settings: VisualizationSettings,
-  ) => ChartTicksFormatters;
-  hovered: $FIXME;
-  onVisualizationClick?: $FIXME;
-  onHoverChange?: $FIXME;
+
+  hoveredData?: HoveredData | null;
+
+  onClick: RowChartViewProps<TDatum>["onClick"];
+  onHover: RowChartViewProps<TDatum>["onHover"];
 }
 
-export const RowChart = ({
+export const RowChart = <TDatum,>({
   width,
   height,
-  settings,
-  data,
-  getFormatters,
-  measureText,
-  hovered,
-  onVisualizationClick,
-  onHoverChange,
-}: RowChartProps) => {
-  const { chartColumns, series, seriesColors } = useChartSeries(data, settings);
-  const goal = useMemo(() => getChartGoal(settings), [settings]);
-  const theme = useMemo(getChartTheme, []);
-  const stackingOffset = getStackingOffset(settings);
 
+  data,
+  trimData,
+  series,
+  seriesColors,
+
+  goal,
+  theme,
+  stackingOffset,
+  shouldShowDataLabels,
+
+  tickFormatters,
+  measureText,
+
+  hoveredData,
+
+  onClick,
+  onHover,
+}: RowChartProps<TDatum>) => {
   const maxYValues = useMemo(
     () =>
       getMaxYValuesCount(
@@ -61,75 +72,25 @@ export const RowChart = ({
     [height, series.length, stackingOffset],
   );
 
-  const { trimmedData } = useChartDataset(chartColumns, data, maxYValues);
+  const trimmedData = trimData(data, maxYValues);
 
-  const { xTickFormatter, yTickFormatter } = useMemo(
-    () => getFormatters(chartColumns, settings),
-    [chartColumns, getFormatters, settings],
-  );
+  const { xTickFormatter, yTickFormatter } = tickFormatters;
 
   const margin = useMemo(
     () =>
       getChartMargin(
         trimmedData,
+        series,
         yTickFormatter,
         theme.axis.ticks,
         goal != null,
         measureText,
       ),
-    [goal, measureText, theme.axis.ticks, trimmedData, yTickFormatter],
+    [trimmedData, series, yTickFormatter, theme.axis.ticks, goal, measureText],
   );
 
-  const shouldShowLabels =
-    settings["graph.show_values"] && stackingOffset !== "expand";
-
-  const handleClick = (
-    event: React.MouseEvent,
-    seriesIndex: number,
-    datumIndex: number,
-  ) => {
-    const clickData = getClickData(
-      seriesIndex,
-      datumIndex,
-      series,
-      trimmedData,
-      settings,
-      chartColumns,
-    );
-
-    onVisualizationClick({ ...clickData, element: event.target });
-  };
-
-  const handleHoverChange = (
-    event: React.MouseEvent,
-    seriesIndex: number | null,
-    datumIndex: number | null,
-  ) => {
-    if (seriesIndex == null || datumIndex == null) {
-      onHoverChange(null);
-      return;
-    }
-    const hoverData = getHoverData(
-      seriesIndex,
-      datumIndex,
-      series,
-      trimmedData,
-      settings,
-      chartColumns,
-    );
-    onHoverChange({
-      ...hoverData,
-      event: event.nativeEvent,
-      element: event.target,
-    });
-  };
-
-  // FIXME: unify-transform different shapes of the hover object on the upper level
-  const hoveredSeriesIndex: number | undefined =
-    hovered?.seriesIndex || hovered?.index;
-
   return (
-    <RowChartView
+    <RowChartView<TDatum>
       margin={margin}
       theme={theme}
       width={width}
@@ -137,14 +98,14 @@ export const RowChart = ({
       data={trimmedData}
       series={series}
       goal={goal}
-      onClick={handleClick}
-      hoveredSeriesIndex={hoveredSeriesIndex}
-      onHoverChange={handleHoverChange}
+      hoveredData={hoveredData}
       yTickFormatter={yTickFormatter}
       xTickFormatter={xTickFormatter}
-      shouldShowLabels={shouldShowLabels}
+      shouldShowDataLabels={shouldShowDataLabels}
       stackingOffset={stackingOffset}
       seriesColors={seriesColors}
+      onClick={onClick}
+      onHover={onHover}
     />
   );
 };

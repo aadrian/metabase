@@ -1,8 +1,5 @@
-import { RowValue } from "metabase-types/api";
 import { TextMeasurer } from "metabase/visualizations/types/measure-text";
-import { Margin } from "../RowChartView/types/margin";
-import { ChartFont } from "../RowChartView/types/style";
-import { GroupedDataset } from "./data";
+import { ChartFont, Margin, Series } from "../types";
 
 const CHART_PADDING = 10;
 const TICKS_OFFSET = 10;
@@ -24,15 +21,18 @@ export const getMaxWidth = (
   );
 };
 
-export const getChartMargin = (
-  data: GroupedDataset,
-  yTickFormatter: (value: RowValue) => string,
+export const getChartMargin = <TDatum>(
+  data: TDatum[],
+  series: Series<TDatum, unknown>[],
+  yTickFormatter: (value: any) => string,
   ticksFont: ChartFont,
   hasGoalLine: boolean,
   measureText: TextMeasurer,
 ): Margin => {
   const yTicksWidth = getMaxWidth(
-    data.map(datum => yTickFormatter(datum.dimensionValue)),
+    data.flatMap(datum =>
+      series.map(series => yTickFormatter(series.yAccessor(datum))),
+    ),
     ticksFont,
     measureText,
   );

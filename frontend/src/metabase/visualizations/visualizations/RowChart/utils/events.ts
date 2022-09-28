@@ -3,9 +3,14 @@ import {
   RowValue,
   VisualizationSettings,
 } from "metabase-types/api";
-import { Series } from "../RowChartView/types/series";
+import {
+  GroupedDataset,
+  GroupedDatum,
+  Series,
+  SeriesInfo,
+} from "metabase/visualizations/components/RowChart/types";
+
 import { ChartColumns } from "../../../lib/graph/columns";
-import { GroupedDataset, GroupedDatum, SeriesInfo } from "./data";
 
 export const getClickData = (
   seriesIndex: number,
@@ -78,9 +83,8 @@ export const getHoverData = (
 
   return {
     settings,
-    index: seriesIndex,
-    seriesIndex,
     datumIndex,
+    index: seriesIndex,
     data,
   };
 };

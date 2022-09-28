@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Group } from "@visx/group";
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { Bar, Line } from "@visx/shape";
@@ -8,10 +8,8 @@ import { stack, stackOffsetExpand, stackOffsetNone } from "d3-shape";
 import type { NumberValue, ScaleBand, ScaleLinear } from "d3-scale";
 import { Text } from "@visx/text";
 import { GridColumns } from "@visx/grid";
-import { Series } from "./types/series";
+import { ChartGoal, ChartTheme, HoveredData, Margin, Series } from "../types";
 import { createStackedXScale, createXScale, createYScale } from "./utils/scale";
-import { ChartTheme } from "./types/style";
-import { Margin } from "./types/margin";
 
 const MIN_TICKS_COUNT = 2;
 
@@ -22,15 +20,15 @@ const StackingOffsetFn = {
   expand: stackOffsetExpand,
 } as const;
 
-interface RowChartViewProps<TDatum> {
+export interface RowChartViewProps<TDatum> {
   width: number;
   height: number;
   data: TDatum[];
   series: Series<TDatum>[];
-  shouldShowLabels?: boolean;
+  shouldShowDataLabels?: boolean;
   stackingOffset: StackingOffset | null;
-  hoveredSeriesIndex?: number | null;
-  onHoverChange?: (
+  hoveredData?: HoveredData | null;
+  onHover?: (
     event: React.MouseEvent,
     seriesIndex: number | null,
     barIndex: number | null,
@@ -42,10 +40,7 @@ interface RowChartViewProps<TDatum> {
   ) => void;
   yTickFormatter: (value: string | number) => string;
   xTickFormatter: (value: NumberValue) => string;
-  goal?: {
-    label?: string;
-    value: number;
-  };
+  goal: ChartGoal | null;
   theme: ChartTheme;
   margin: Margin;
   seriesColors: Record<string, string>;
@@ -121,14 +116,14 @@ export const RowChartView = <TDatum,>({
   data,
   goal,
   series: multipleSeries,
-  shouldShowLabels,
+  shouldShowDataLabels,
   stackingOffset = null,
   theme,
   margin,
-  hoveredSeriesIndex,
+  hoveredData,
   yTickFormatter,
   xTickFormatter,
-  onHoverChange,
+  onHover,
   seriesColors,
   onClick,
 }: RowChartViewProps<TDatum>) => {
@@ -177,11 +172,11 @@ export const RowChartView = <TDatum,>({
     seriesIndex: number,
     datumIndex: number,
   ) => {
-    onHoverChange?.(event, seriesIndex, datumIndex);
+    onHover?.(event, seriesIndex, datumIndex);
   };
 
   const handleBarMouseLeave = (event: React.MouseEvent) => {
-    onHoverChange?.(event, null, null);
+    onHover?.(event, null, null);
   };
 
   const handleClick = (
@@ -261,13 +256,13 @@ export const RowChartView = <TDatum,>({
 
             const { x, y, width, height, value } = bar;
 
-            const hasSeriesHover = hoveredSeriesIndex != null;
-            const isSeriesHovered = hoveredSeriesIndex === seriesIndex;
-            const opacity = isSeriesHovered || !hasSeriesHover ? 1 : 0.6;
+            const hasSeriesHover = hoveredData != null;
+            const isSeriesHovered = hoveredData?.seriesIndex === seriesIndex;
+            const opacity = isSeriesHovered || !hasSeriesHover ? 1 : 0.4;
             const isNegative = value < 0;
 
             const isLabelVisible =
-              shouldShowLabels &&
+              shouldShowDataLabels &&
               value != null &&
               (!isStacked || seriesIndex === multipleSeries.length - 1);
 

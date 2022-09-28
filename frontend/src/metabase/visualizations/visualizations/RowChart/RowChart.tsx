@@ -8,13 +8,27 @@ import {
 } from "metabase/visualizations/lib/settings/graph";
 import { DatasetData, VisualizationSettings } from "metabase-types/api";
 import { isDimension, isMetric } from "metabase/lib/schema_metadata";
-import { RowChart } from "metabase/visualizations/components/RowChart";
-import { getSeries } from "metabase/visualizations/components/RowChart/utils/data";
+import {
+  RowChart,
+  RowChartProps,
+} from "metabase/visualizations/components/RowChart";
+import {
+  getGroupedDataset,
+  getSeries,
+  trimData,
+} from "metabase/visualizations/components/RowChart/utils/data";
 import { getChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { getFormatters } from "metabase/visualizations/visualizations/RowChart/utils/format";
 import { measureText } from "metabase/lib/measure-text";
-import { getSeriesColors } from "metabase/visualizations/components/RowChart/utils/colors";
 import ExplicitSize from "metabase/components/ExplicitSize";
+import {
+  getClickData,
+  getHoverData,
+} from "metabase/visualizations/visualizations/RowChart/utils/events";
+import { useChartSeries } from "metabase/visualizations/components/RowChart/hooks/use-chart-series";
+import { getChartGoal } from "metabase/visualizations/lib/settings/goal";
+import { getChartTheme } from "metabase/visualizations/components/RowChart/utils/theme";
+import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
 import {
   RowVisualizationRoot,
   RowChartContainer,
@@ -28,7 +42,7 @@ type $FIXME = any;
 const RowChartRenderer = ExplicitSize({
   wrapped: true,
   refreshMode: "throttle",
-})((props: any) => (
+})((props: RowChartProps<any>) => (
   <RowChartContainer>
     <RowChart {...props} />
   </RowChartContainer>
@@ -54,7 +68,7 @@ const RowChartVisualization = ({
   data,
   visualizationIsClickable,
   onVisualizationClick,
-  series,
+  series: rawSeries,
   hovered,
   headerIcon,
   actionButtons,
@@ -65,37 +79,76 @@ const RowChartVisualization = ({
   onRemoveSeries,
   ...props
 }: RowChartVisualizationProps) => {
-  const chartColumns = useMemo(
-    () => getChartColumns(data, settings),
-    [data, settings],
+  const { chartColumns, series, seriesColors } = useChartSeries(data, settings);
+  const groupedData = useMemo(
+    () => getGroupedDataset(data, chartColumns),
+    [chartColumns, data],
+  );
+  const goal = useMemo(() => getChartGoal(settings), [settings]);
+  const theme = useMemo(getChartTheme, []);
+  const stackingOffset = getStackingOffset(settings);
+  const shouldShowDataLabels =
+    settings["graph.show_values"] && stackingOffset !== "expand";
+
+  const tickFormatters = useMemo(
+    () => getFormatters(chartColumns, settings),
+    [chartColumns, settings],
   );
 
-  const seriesOrder = useMemo(() => {
-    const seriesOrderSettings = settings["graph.series_order"];
-    if (!seriesOrderSettings) {
+  const handleClick = (
+    event: React.MouseEvent,
+    seriesIndex: number,
+    datumIndex: number,
+  ) => {
+    const clickData = getClickData(
+      seriesIndex,
+      datumIndex,
+      series,
+      groupedData,
+      settings,
+      chartColumns,
+    );
+
+    onVisualizationClick({ ...clickData, element: event.target });
+  };
+
+  const handleHover = (
+    event: React.MouseEvent,
+    seriesIndex: number | null,
+    datumIndex: number | null,
+  ) => {
+    if (seriesIndex == null || datumIndex == null) {
+      onHoverChange(null);
       return;
     }
+    const hoverData = getHoverData(
+      seriesIndex,
+      datumIndex,
+      series,
+      groupedData,
+      settings,
+      chartColumns,
+    );
+    onHoverChange({
+      ...hoverData,
+      event: event.nativeEvent,
+      element: event.target,
+    });
+  };
 
-    return seriesOrderSettings
-      .filter(setting => setting.enabled)
-      .map(setting => setting.name);
-  }, [settings]);
-
-  const chartSeries = useMemo(
-    () => getSeries(data, chartColumns, seriesOrder),
-    [chartColumns, data, seriesOrder],
-  );
-
-  const seriesColors = useMemo(
-    () => getSeriesColors(settings, chartSeries),
-    [chartSeries, settings],
-  );
+  const hoverData =
+    hovered?.index != null
+      ? {
+          seriesIndex: hovered?.index,
+          datumIndex: hovered?.datumIndex,
+        }
+      : null;
 
   return (
     <RowVisualizationRoot className={className}>
       <RowChartLegendLayout
-        hasLegend={chartSeries.length > 1}
-        labels={chartSeries.map(s => s.seriesKey)}
+        hasLegend={series.length > 1}
+        labels={series.map(s => s.seriesKey)}
         colors={Object.values(seriesColors)}
         hovered={hovered}
         onHoverChange={onHoverChange}
@@ -104,13 +157,19 @@ const RowChartVisualization = ({
       >
         <RowChartRenderer
           className="flex-full"
-          settings={settings}
-          data={data}
+          data={groupedData}
+          trimData={trimData}
+          series={series}
+          seriesColors={seriesColors}
+          goal={goal}
+          theme={theme}
+          stackingOffset={stackingOffset}
+          shouldShowDataLabels={shouldShowDataLabels}
+          tickFormatters={tickFormatters}
           measureText={measureText}
-          getFormatters={getFormatters}
-          onVisualizationClick={onVisualizationClick}
-          onHoverChange={onHoverChange}
-          hovered={hovered}
+          hoveredData={hoverData}
+          onClick={handleClick}
+          onHover={handleHover}
         />
       </RowChartLegendLayout>
     </RowVisualizationRoot>

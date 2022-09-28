@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { t } from "ttag";
 import { connect } from "react-redux";
 
@@ -6,10 +6,13 @@ import Actions from "metabase/entities/actions";
 
 import { updateButtonActionMapping } from "metabase/dashboard/actions";
 
+import ActionPicker from "metabase/containers/ActionPicker";
+
 import type {
   ActionDashboardCard,
   ActionParametersMapping,
   WritebackAction,
+  ModelAction,
 } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 import type { UiParameter } from "metabase/parameters/types";
@@ -17,8 +20,10 @@ import type { UiParameter } from "metabase/parameters/types";
 import { Heading, SidebarContent } from "../ClickBehaviorSidebar.styled";
 
 import ActionClickMappings from "./ActionClickMappings";
-import ActionOptionItem from "./ActionOptionItem";
-import { ClickMappingsContainer } from "./ActionOptions.styled";
+import {
+  ClickMappingsContainer,
+  ActionPickerWrapper,
+} from "./ActionOptions.styled";
 
 interface ActionOptionsOwnProps {
   dashcard: ActionDashboardCard;
@@ -47,16 +52,17 @@ function ActionOptions({
   parameters,
   onUpdateButtonActionMapping,
 }: ActionOptionsProps & { actions: WritebackAction[] }) {
-  const connectedActionId = dashcard.action_id;
-
-  const selectedAction = actions.find(
-    action => action.id === connectedActionId,
-  );
+  const selectedAction = dashcard.action;
 
   const handleActionSelected = useCallback(
-    (action: WritebackAction) => {
+    (action: ModelAction) => {
       onUpdateButtonActionMapping(dashcard.id, {
-        action_id: action.id,
+        card_id: action.card_id,
+        action,
+        visualization_settings: {
+          ...dashcard.visualization_settings,
+          action_slug: action.slug, // :-( so hacky
+        },
 
         // Clean mappings from previous action
         // as they're most likely going to be irrelevant
@@ -76,17 +82,12 @@ function ActionOptions({
   );
 
   return (
-    <>
-      {actions.map(action => (
-        <ActionOptionItem
-          key={action.id}
-          name={action.name}
-          description={action.description}
-          isSelected={action.id === connectedActionId}
-          onClick={() => handleActionSelected(action)}
-        />
-      ))}
-      {selectedAction && (
+    <div style={{ maxHeight: "calc(100vh - 25rem)", overflowY: "auto" }}>
+      <ActionPickerWrapper>
+        <ActionPicker value={selectedAction} onChange={handleActionSelected} />
+      </ActionPickerWrapper>
+
+      {!!selectedAction && (
         <ClickMappingsContainer>
           <ActionClickMappings
             action={selectedAction}
@@ -96,7 +97,7 @@ function ActionOptions({
           />
         </ClickMappingsContainer>
       )}
-    </>
+    </div>
   );
 }
 

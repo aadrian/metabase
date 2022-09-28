@@ -47,6 +47,8 @@ export interface ActionDashboardCard
   extends Omit<BaseDashboardOrderedCard, "parameter_mappings"> {
   action_id: number | null;
   action?: WritebackAction;
+  card_id: number; // model card id for the associated action
+  slug: string;
 
   parameter_mappings?: ActionParametersMapping[] | null;
   visualization_settings: {

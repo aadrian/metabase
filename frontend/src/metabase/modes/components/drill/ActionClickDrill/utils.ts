@@ -68,7 +68,7 @@ export function getNotProvidedActionParameters(
   dashboardParamValues: ParameterMappedForActionExecution[],
 ) {
   // return any action parameters that don't have mapped values
-  return action.parameters.filter(parameter => {
+  return (action.parameters ?? []).filter(parameter => {
     if ("default" in parameter) {
       return false;
     }

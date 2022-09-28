@@ -253,6 +253,8 @@ export const executeRowAction = async ({
     const result = await ActionsApi.execute({
       dashboardId: dashboard.id,
       dashcardId: dashcard.id,
+      modelId: dashcard.card_id,
+      slug: dashcard.action.slug,
       parameters,
       extra_parameters,
     });

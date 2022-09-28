@@ -71,7 +71,10 @@ function ActionClickMappings({
   return (
     <ClickMappings
       isAction
-      object={action}
+      object={{
+        ...action,
+        parameter_mappings: action.parameter_mappings ?? [],
+      }}
       dashcard={dashcard}
       clickBehavior={clickBehavior}
       updateSettings={handleParameterMappingChange}

@@ -9,6 +9,7 @@ export type WritebackActionType = "http" | "query";
 
 export interface WritebackActionBase {
   id: number;
+  card_id?: number; // model id
   name: string;
   description: string | null;
   parameters: WritebackParameter[];

@@ -114,9 +114,14 @@ export const RowChart = ({
       datumIndex,
       series,
       trimmedData,
+      settings,
       chartColumns,
     );
-    onHoverChange({ ...hoverData, event: event.nativeEvent });
+    onHoverChange({
+      ...hoverData,
+      event: event.nativeEvent,
+      element: event.target,
+    });
   };
 
   // FIXME: unify-transform different shapes of the hover object on the upper level

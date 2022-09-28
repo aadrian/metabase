@@ -48,6 +48,7 @@ export const getHoverData = (
   datumIndex: number,
   series: Series<GroupedDatum, SeriesInfo>[],
   groupedData: GroupedDataset,
+  settings: VisualizationSettings,
   chartColumns: ChartColumns,
 ) => {
   const currentSeries = series[seriesIndex];
@@ -57,6 +58,7 @@ export const getHoverData = (
     {
       key: chartColumns.dimension.column.display_name,
       value: currentDatum.dimensionValue,
+      col: chartColumns.dimension.column,
     },
   ];
 
@@ -64,20 +66,21 @@ export const getHoverData = (
     data.push({
       key: chartColumns.breakout.column.display_name,
       value: currentSeries.seriesKey,
+      col: chartColumns.breakout.column,
     });
 
     data.push({
       key: chartColumns.metric.column.display_name,
       value: currentSeries.xAccessor(currentDatum),
+      col: chartColumns.metric.column,
     });
   }
 
-  const result = {
+  return {
+    settings,
     index: seriesIndex,
     seriesIndex,
     datumIndex,
     data,
   };
-
-  return result;
 };

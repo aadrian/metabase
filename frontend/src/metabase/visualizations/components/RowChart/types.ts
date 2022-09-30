@@ -29,6 +29,7 @@ export type ChartTheme = {
     color: string;
     minTicksInterval: number;
     ticks: ChartFont;
+    label: ChartFont;
   };
   dataLabels: ChartFont;
   goal: {

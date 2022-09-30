@@ -3,6 +3,7 @@ import { t } from "ttag";
 
 import _ from "underscore";
 import {
+  GRAPH_AXIS_SETTINGS,
   GRAPH_DATA_SETTINGS,
   GRAPH_GOAL_SETTINGS,
 } from "metabase/visualizations/lib/settings/graph";
@@ -144,6 +145,13 @@ const RowChartVisualization = ({
         }
       : null;
 
+  const xLabel = settings["graph.x_axis.labels_enabled"]
+    ? settings["graph.x_axis.title_text"]
+    : undefined;
+  const yLabel = settings["graph.y_axis.labels_enabled"]
+    ? settings["graph.y_axis.title_text"]
+    : undefined;
+
   return (
     <RowVisualizationRoot className={className}>
       <RowChartLegendLayout
@@ -170,6 +178,8 @@ const RowChartVisualization = ({
           hoveredData={hoverData}
           onClick={handleClick}
           onHover={handleHover}
+          xLabel={xLabel}
+          yLabel={yLabel}
         />
       </RowChartLegendLayout>
     </RowVisualizationRoot>
@@ -209,6 +219,7 @@ RowChartVisualization.settings = {
   },
   ...GRAPH_GOAL_SETTINGS,
   ...GRAPH_DATA_SETTINGS,
+  ...GRAPH_AXIS_SETTINGS,
 };
 
 RowChartVisualization.isSensible = ({ cols, rows }: $FIXME) => {

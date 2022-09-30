@@ -1,6 +1,6 @@
 import d3 from "d3";
 import type { Series as D3Series } from "d3-shape";
-import { Series } from "../types/series";
+import { Series } from "../types";
 
 export const createYDomain = <TDatum>(
   data: TDatum[],

@@ -4,7 +4,13 @@ import _ from "underscore";
 
 import { TextMeasurer } from "metabase/visualizations/types/measure-text";
 import { RowChartView, RowChartViewProps } from "./RowChartView/RowChartView";
-import { getMaxYValuesCount, getChartMargin } from "./utils/layout";
+import {
+  getMaxYValuesCount,
+  getChartMargin,
+  StackingOffset,
+  calculateStackedBars,
+  calculateNonStackedBars,
+} from "./utils/layout";
 import {
   ChartGoal,
   ChartTheme,
@@ -27,16 +33,19 @@ export interface RowChartProps<TDatum> {
 
   goal: ChartGoal | null;
   theme: ChartTheme;
-  stackingOffset: "none" | "expand" | null;
+  stackingOffset: StackingOffset;
   shouldShowDataLabels?: boolean;
+
+  yLabel?: string;
+  xLabel?: string;
 
   tickFormatters: ChartTicksFormatters;
   measureText: TextMeasurer;
 
   hoveredData?: HoveredData | null;
 
-  onClick: RowChartViewProps<TDatum>["onClick"];
-  onHover: RowChartViewProps<TDatum>["onHover"];
+  onClick?: RowChartViewProps["onClick"];
+  onHover?: RowChartViewProps["onHover"];
 }
 
 export const RowChart = <TDatum,>({
@@ -45,13 +54,16 @@ export const RowChart = <TDatum,>({
 
   data,
   trimData,
-  series,
+  series: multipleSeries,
   seriesColors,
 
   goal,
   theme,
   stackingOffset,
   shouldShowDataLabels,
+
+  xLabel,
+  yLabel,
 
   tickFormatters,
   measureText,
@@ -67,9 +79,9 @@ export const RowChart = <TDatum,>({
         height,
         MIN_BAR_HEIGHT,
         stackingOffset != null,
-        series.length,
+        multipleSeries.length,
       ),
-    [height, series.length, stackingOffset],
+    [height, multipleSeries.length, stackingOffset],
   );
 
   const trimmedData = trimData(data, maxYValues);
@@ -80,32 +92,93 @@ export const RowChart = <TDatum,>({
     () =>
       getChartMargin(
         trimmedData,
-        series,
+        multipleSeries,
         yTickFormatter,
         theme.axis.ticks,
+        theme.axis.label,
         goal != null,
         measureText,
+        xLabel,
+        yLabel,
       ),
-    [trimmedData, series, yTickFormatter, theme.axis.ticks, goal, measureText],
+    [
+      trimmedData,
+      multipleSeries,
+      yTickFormatter,
+      theme.axis.ticks,
+      theme.axis.label,
+      goal,
+      measureText,
+      xLabel,
+      yLabel,
+    ],
+  );
+
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const additionalXValues = useMemo(
+    () => (goal != null ? [goal.value ?? 0] : []),
+    [goal],
+  );
+
+  const { xScale, yScale, bars } = useMemo(
+    () =>
+      stackingOffset != null
+        ? calculateStackedBars<TDatum>({
+            data: trimmedData,
+            multipleSeries,
+            additionalXValues,
+            stackingOffset,
+            innerWidth,
+            innerHeight,
+            seriesColors,
+          })
+        : calculateNonStackedBars<TDatum>({
+            data: trimmedData,
+            multipleSeries,
+            additionalXValues,
+            innerWidth,
+            innerHeight,
+            seriesColors,
+          }),
+    [
+      additionalXValues,
+      innerHeight,
+      innerWidth,
+      multipleSeries,
+      seriesColors,
+      stackingOffset,
+      trimmedData,
+    ],
+  );
+
+  const xTicksCount = Math.max(
+    2,
+    Math.floor(innerWidth / theme.axis.minTicksInterval),
   );
 
   return (
-    <RowChartView<TDatum>
+    <RowChartView
+      barsSeries={bars}
+      innerHeight={innerHeight}
+      innerWidth={innerWidth}
       margin={margin}
       theme={theme}
       width={width}
       height={height}
-      data={trimmedData}
-      series={series}
+      xScale={xScale}
+      yScale={yScale}
       goal={goal}
       hoveredData={hoveredData}
       yTickFormatter={yTickFormatter}
       xTickFormatter={xTickFormatter}
-      shouldShowDataLabels={shouldShowDataLabels}
-      stackingOffset={stackingOffset}
-      seriesColors={seriesColors}
       onClick={onClick}
       onHover={onHover}
+      xTicksCount={xTicksCount}
+      shouldShowDataLabels={shouldShowDataLabels}
+      yLabel={yLabel}
+      xLabel={xLabel}
     />
   );
 };

@@ -1,172 +1,64 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Group } from "@visx/group";
 import { AxisBottom, AxisLeft } from "@visx/axis";
-import { Bar, Line } from "@visx/shape";
-import { scaleBand } from "@visx/scale";
-import type { Series as D3Series, SeriesPoint } from "d3-shape";
-import { stack, stackOffsetExpand, stackOffsetNone } from "d3-shape";
+import { Bar } from "@visx/shape";
 import type { NumberValue, ScaleBand, ScaleLinear } from "d3-scale";
 import { Text } from "@visx/text";
 import { GridColumns } from "@visx/grid";
 import { ChartGoal, ChartTheme, HoveredData, Margin, Series } from "../types";
-import { createStackedXScale, createXScale, createYScale } from "./utils/scale";
+import { ChartBar } from "../utils/layout";
+import { VerticalGoalLine } from "./VerticalGoalLine";
 
-const MIN_TICKS_COUNT = 2;
-
-type StackingOffset = "none" | "expand";
-
-const StackingOffsetFn = {
-  none: stackOffsetNone,
-  expand: stackOffsetExpand,
-} as const;
-
-export interface RowChartViewProps<TDatum> {
+export interface RowChartViewProps {
   width: number;
   height: number;
-  data: TDatum[];
-  series: Series<TDatum>[];
-  shouldShowDataLabels?: boolean;
-  stackingOffset: StackingOffset | null;
+  yScale: ScaleBand<string>;
+  xScale: ScaleLinear<number, number, never>;
+  barsSeries: (ChartBar | null)[][];
   hoveredData?: HoveredData | null;
   onHover?: (
     event: React.MouseEvent,
     seriesIndex: number | null,
-    barIndex: number | null,
+    datumIndex: number | null,
   ) => void;
   onClick?: (
     event: React.MouseEvent,
     seriesIndex: number,
-    barIndex: number,
+    datumIndex: number,
   ) => void;
   yTickFormatter: (value: string | number) => string;
   xTickFormatter: (value: NumberValue) => string;
   goal: ChartGoal | null;
   theme: ChartTheme;
   margin: Margin;
-  seriesColors: Record<string, string>;
+  innerWidth: number;
+  innerHeight: number;
+  xTicksCount: number;
+  shouldShowDataLabels?: boolean;
+  xLabel?: string | null;
+  yLabel?: string | null;
 }
 
-export type BarDimensions = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  color?: string;
-  value: number | null;
-};
-
-const getNonStackedBar = <TDatum,>(
-  datum: TDatum,
-  series: Series<TDatum>,
-  xScale: ScaleLinear<number, number, never>,
-  yScale: ScaleBand<string>,
-  innerBarScale: ScaleBand<number> | null,
-  seriesIndex: number,
-): BarDimensions | null => {
-  const yValue = series.yAccessor(datum);
-  const xValue = series.xAccessor(datum);
-  const isNegative = xValue != null && xValue < 0;
-
-  if (xValue == null) {
-    return null;
-  }
-
-  const x = xScale(isNegative ? xValue : 0);
-  const width = Math.abs(xScale(isNegative ? 0 : xValue) - x);
-
-  const height = innerBarScale?.bandwidth() ?? yScale.bandwidth();
-  const innerY = innerBarScale?.(seriesIndex) ?? 0;
-  const y = innerY + (yScale(yValue) ?? 0);
-
-  return {
-    x,
-    y,
-    height,
-    width,
-    value: xValue,
-  };
-};
-
-const getStackedBar = <TDatum,>(
-  stackedDatum: SeriesPoint<TDatum>,
-  series: Series<TDatum>,
-  xScale: ScaleLinear<number, number, never>,
-  yScale: ScaleBand<string>,
-): BarDimensions | null => {
-  const [xStartDomain, xEndDomain] = stackedDatum;
-
-  const x = xScale(xStartDomain);
-  const width = Math.abs(xScale(xEndDomain) - x);
-
-  const height = yScale.bandwidth();
-  const y = yScale(series.yAccessor(stackedDatum.data)) ?? 0;
-
-  return {
-    x,
-    y,
-    height,
-    width,
-    value: xEndDomain,
-  };
-};
-
-export const RowChartView = <TDatum,>({
+export const RowChartView = ({
   width,
   height,
-  data,
+  innerHeight,
+  xScale,
+  yScale,
+  barsSeries,
   goal,
-  series: multipleSeries,
-  shouldShowDataLabels,
-  stackingOffset = null,
   theme,
   margin,
   hoveredData,
   yTickFormatter,
   xTickFormatter,
   onHover,
-  seriesColors,
   onClick,
-}: RowChartViewProps<TDatum>) => {
-  const xMax = width - margin.left - margin.right;
-  const yMax = height - margin.top - margin.bottom;
-
-  const seriesByKey = useMemo(() => {
-    return multipleSeries.reduce((acc, series) => {
-      acc[series.seriesKey] = series;
-      return acc;
-    }, {} as Record<string, Series<TDatum>>);
-  }, [multipleSeries]);
-
-  const isStacked = stackingOffset != null;
-
-  const d3stack = useMemo(
-    () =>
-      stack<TDatum>()
-        .keys(multipleSeries.map(s => s.seriesKey))
-        .value((datum, seriesKey) => {
-          return seriesByKey[seriesKey].xAccessor(datum) ?? 0;
-        })
-        .offset(StackingOffsetFn[stackingOffset ?? "none"]),
-    [multipleSeries, seriesByKey, stackingOffset],
-  );
-  const stackedData: D3Series<TDatum, string>[] = useMemo(
-    () => d3stack(data),
-    [d3stack, data],
-  );
-
-  const yScale = createYScale(data, multipleSeries, yMax);
-  const additionalXValues = [goal?.value ?? 0];
-  const xScale = isStacked
-    ? createStackedXScale(stackedData, additionalXValues, [0, xMax])
-    : createXScale(data, multipleSeries, additionalXValues, [0, xMax]);
-
-  const innerBarScale = isStacked
-    ? null
-    : scaleBand({
-        domain: multipleSeries.map((_, index) => index),
-        range: [0, yScale.bandwidth()],
-      });
-
+  xTicksCount,
+  shouldShowDataLabels,
+  yLabel,
+  xLabel,
+}: RowChartViewProps) => {
   const handleBarMouseEnter = (
     event: React.MouseEvent,
     seriesIndex: number,
@@ -187,22 +79,96 @@ export const RowChartView = <TDatum,>({
     onClick?.(event, seriesIndex, datumIndex);
   };
 
-  const goalLineValue = xScale(goal?.value ?? 0);
-  const xTicksCount = Math.max(
-    MIN_TICKS_COUNT,
-    Math.floor(xMax / theme.axis.minTicksInterval),
-  );
+  const goalLineX = xScale(goal?.value ?? 0);
 
   return (
     <svg width={width} height={height}>
       <Group top={margin.top} left={margin.left}>
         <GridColumns
           scale={xScale}
-          height={yMax}
+          height={innerHeight}
           stroke={theme.grid.color}
           numTicks={xTicksCount}
         />
+
+        {barsSeries.map((series, seriesIndex) => {
+          return series.map((bar, datumIndex) => {
+            if (bar == null) {
+              return null;
+            }
+
+            const { x, y, width, height, value, color } = bar;
+
+            const hasSeriesHover = hoveredData != null;
+            const isSeriesHovered = hoveredData?.seriesIndex === seriesIndex;
+            const isDatumHovered = hoveredData?.datumIndex === datumIndex;
+
+            const shouldHighlightBar =
+              barsSeries.length === 1 && isDatumHovered;
+            const shouldHighlightSeries =
+              barsSeries.length > 1 && isSeriesHovered;
+
+            const opacity =
+              !hasSeriesHover || shouldHighlightSeries || shouldHighlightBar
+                ? 1
+                : 0.4;
+
+            const isLabelVisible = shouldShowDataLabels && value != null;
+
+            return (
+              <>
+                <Bar
+                  style={{ transition: "opacity 300ms" }}
+                  key={`${seriesIndex}:${datumIndex}`}
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={height}
+                  fill={color}
+                  opacity={opacity}
+                  onClick={event => handleClick(event, seriesIndex, datumIndex)}
+                  onMouseEnter={event =>
+                    handleBarMouseEnter(event, seriesIndex, datumIndex)
+                  }
+                  onMouseLeave={handleBarMouseLeave}
+                />
+                {isLabelVisible && (
+                  <Text
+                    fontSize={theme.dataLabels.size}
+                    fill={theme.dataLabels.color}
+                    fontWeight={theme.dataLabels.weight}
+                    dx="0.33em"
+                    x={x + width}
+                    y={y + height / 2}
+                    verticalAnchor="middle"
+                  >
+                    {value}
+                  </Text>
+                )}
+              </>
+            );
+          });
+        })}
+
+        {goal && (
+          <VerticalGoalLine
+            x={goalLineX}
+            height={innerHeight}
+            label={goal.label}
+            style={theme.goal}
+          />
+        )}
+
         <AxisLeft
+          label={yLabel ?? ""}
+          labelProps={{
+            fill: theme.axis.label.color,
+            fontSize: theme.axis.label.size,
+            fontWeight: theme.axis.label.weight,
+            textAnchor: "middle",
+            verticalAnchor: "start",
+          }}
+          labelOffset={margin.left - theme.axis.label.size}
           tickFormat={yTickFormatter}
           hideTicks
           numTicks={Infinity}
@@ -218,115 +184,27 @@ export const RowChartView = <TDatum,>({
           })}
         />
         <AxisBottom
+          label={xLabel ?? ""}
+          labelProps={{
+            fill: theme.axis.label.color,
+            fontSize: theme.axis.label.size,
+            fontWeight: theme.axis.label.weight,
+            verticalAnchor: "end",
+          }}
           hideTicks
           numTicks={xTicksCount}
           tickFormat={xTickFormatter}
-          top={yMax}
+          top={innerHeight}
           scale={xScale}
           stroke={theme.axis.color}
           tickStroke={theme.axis.color}
           tickLabelProps={() => ({
-            fill: theme.axis.color,
+            fill: theme.axis.ticks.color,
             fontSize: theme.axis.ticks.size,
             fontWeight: theme.axis.ticks.weight,
             textAnchor: "middle",
           })}
         />
-        {multipleSeries.map((series, seriesIndex) => {
-          return data.map((datum, datumIndex) => {
-            let bar: BarDimensions | null = null;
-
-            if (isStacked) {
-              const stackedDatum = stackedData[seriesIndex][datumIndex];
-              bar = getStackedBar(stackedDatum, series, xScale, yScale);
-            } else {
-              bar = getNonStackedBar(
-                datum,
-                series,
-                xScale,
-                yScale,
-                innerBarScale,
-                seriesIndex,
-              );
-            }
-
-            if (bar?.value == null) {
-              return null;
-            }
-
-            const { x, y, width, height, value } = bar;
-
-            const hasSeriesHover = hoveredData != null;
-            const isSeriesHovered = hoveredData?.seriesIndex === seriesIndex;
-            const opacity = isSeriesHovered || !hasSeriesHover ? 1 : 0.4;
-            const isNegative = value < 0;
-
-            const isLabelVisible =
-              shouldShowDataLabels &&
-              value != null &&
-              (!isStacked || seriesIndex === multipleSeries.length - 1);
-
-            return (
-              <>
-                <Bar
-                  style={{ transition: "opacity 300ms" }}
-                  key={`${series.seriesKey}:${datumIndex}`}
-                  x={x}
-                  y={y}
-                  width={width}
-                  height={height}
-                  fill={seriesColors[series.seriesKey]}
-                  opacity={opacity}
-                  onClick={event => handleClick(event, seriesIndex, datumIndex)}
-                  onMouseEnter={event =>
-                    handleBarMouseEnter(event, seriesIndex, datumIndex)
-                  }
-                  onMouseLeave={handleBarMouseLeave}
-                />
-                {isLabelVisible && (
-                  <Text
-                    fontSize={theme.dataLabels.size}
-                    fill={theme.dataLabels.color}
-                    fontWeight={theme.dataLabels.weight}
-                    dx="0.33em"
-                    x={isNegative ? x : x + width}
-                    y={y + height / 2}
-                    verticalAnchor="middle"
-                  >
-                    {value}
-                  </Text>
-                )}
-              </>
-            );
-          });
-        })}
-
-        {/* TODO: consolidate with the static viz if it makes sense */}
-        {goal && (
-          <>
-            <Text
-              y={0}
-              textAnchor="start"
-              verticalAnchor="end"
-              dy="-0.2em"
-              x={goalLineValue}
-              fill={theme.goal.label.color}
-              fontSize={theme.goal.label.size}
-              fontWeight={theme.goal.label.weight}
-            >
-              {goal?.label}
-            </Text>
-            <Line
-              strokeDasharray={4}
-              stroke={theme.goal.lineStroke}
-              strokeWidth={2}
-              y1={0}
-              y2={yMax}
-              x1={goalLineValue}
-              x2={goalLineValue}
-            />
-          </>
-        )}
       </Group>
     </svg>
   );

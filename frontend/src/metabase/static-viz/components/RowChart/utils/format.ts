@@ -1,8 +1,8 @@
 import { RowValue, VisualizationSettings } from "metabase-types/api";
 import { ChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
-import { ChartTicksFormatters } from "metabase/visualizations/components/RowChart/RowChartView/types/format";
 import { formatNumber } from "metabase/static-viz/lib/numbers";
+import { ChartTicksFormatters } from "metabase/visualizations/components/RowChart/types";
 
 // TODO: implement formatting that does not import any code not supported by static viz SSR env
 export const getStaticFormatters = (

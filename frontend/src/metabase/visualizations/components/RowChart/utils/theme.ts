@@ -1,5 +1,5 @@
 import { color } from "metabase/lib/colors";
-import { ChartTheme } from "../RowChartView/types/style";
+import { ChartTheme } from "../types";
 
 export const getChartTheme: () => ChartTheme = () => {
   return {
@@ -8,6 +8,11 @@ export const getChartTheme: () => ChartTheme = () => {
       minTicksInterval: 60,
       ticks: {
         size: 12,
+        weight: 700,
+        color: color("bg-dark"),
+      },
+      label: {
+        size: 14,
         weight: 700,
         color: color("bg-dark"),
       },
